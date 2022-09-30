@@ -1,0 +1,1 @@
+Dit script genereert alle benodige files voor AAPP
