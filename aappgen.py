@@ -21,8 +21,8 @@ judges = ["Thomas", "Jeroen", "Peter"]
 ## csv format: PC-444444;PC-444445 = Team Really Cool Name; etc.
 rooms = ["6B37", "6B57"]
 roomfiles = [indir + "6b37.csv", indir + "6b57.csv"]
-tabledelimiter = ';'
-pcdelimiter = '='  #TODO names include these symbols often
+tabledelimiter = ';' #TODO names include this symbol often . Fix: read directly from the excel file. seems pretty easy to do
+pcdelimiter = '='  
 
 ## 2 files containing a list of passwords, each password on a new line. 
 ## each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
@@ -118,7 +118,7 @@ for file in roomfiles:
             for item in list(row):
                 if item=="":
                     continue
-                spts = item.split(pcdelimiter)
+                spts = item.split(pcdelimiter,1)
                 if bool(len(spts)-1):
                     team = {'id': str(i), 'icpcid': str(i+ipcpuserbase), "name": str(spts[1]), 'type':'team', "group":"102", "organization":"42", "pcnumber":str(spts[0]), "roomnumber":str(roomnumber), "testpwd": "", "realpwd": ""}
                     teams.append(team)
