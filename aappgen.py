@@ -1,6 +1,13 @@
-import csv
+try:
+   import xlrd
+except ImportError:
+    print ('Error! This script requires the xlrd package to open the room layout Excel file. Use \"pip install xlrd\" to install this package.')
+    exit(1)
 import yaml
 import json 
+
+
+
 
 ######################################### CONSTANTS #####################################################################
 #NUMBERS
@@ -11,23 +18,24 @@ teamsmax = 100
 
 #INPUT
 indir = "" # input file directory
+## 2 files containing a list of passwords, each password on a new line. 
+## each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
+testsessionpwdfile = indir + "koenpasswd.txt"
+realsessionpwdfile = indir + "realpasswd.txt"
+roomsfile = indir + "contest_floor.xlsx"
+pcdelimiter = '='
+
+# ## a list of room names, matching an equal length list of csv files containing PCs and groups in those rooms.
+# ## csv format: PC-444444;PC-444445 = Team Really Cool Name; etc.
+# rooms = ["6B37", "6B57"]
+# roomfiles = [indir + "6b37.csv", indir + "6b57.csv"]
+# tabledelimiter = ';' #TODO names include this symbol often . Fix: read directly from the excel file. seems pretty easy to do
+
 adminmax = 50
 admins = ["Michael", "Josh", "Tudor", "Koen"] 
 
 judgemax = 50
 judges = ["Thomas", "Jeroen", "Peter"]
-
-## a list of room names, matching an equal length list of csv files containing PCs and groups in those rooms.
-## csv format: PC-444444;PC-444445 = Team Really Cool Name; etc.
-rooms = ["6B37", "6B57"]
-roomfiles = [indir + "6b37.csv", indir + "6b57.csv"]
-tabledelimiter = ';' #TODO names include this symbol often . Fix: read directly from the excel file. seems pretty easy to do
-pcdelimiter = '=' 
-
-## 2 files containing a list of passwords, each password on a new line. 
-## each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
-testsessionpwdfile = indir + "koenpasswd.txt"
-realsessionpwdfile = indir + "realpasswd.txt"
 
 ## A json object containing the organizations taking part in the contest.
 ## See file creation below for the format specification.
@@ -113,65 +121,87 @@ while (True):
         teams = []
         break
 
-
-
 # For each admin, judge or team:
     # If their name occurs in the teams object, do not recompute all data
-        # DO NOT RECOMPUTE: id, icpcid, name, type, group_id, organisation, testpwd, realpwd, login
+        # DO NOT RECOMPUTE: id, icpcid, name, type, group, organization, testpwd, realpwd, login
         # RECOMPUTE: pcnumber, roomnumber, rownumber, columnnumber
     # If their name does not occur in the teams object, check if id = i is taken already, else i=i+1 and try again
         # COMPUTE: everything
 
-# adding the admin and judge users
-i = firstid
-for admin in admins:
-    team = {'id': str(i), 'icpcid': i+ipcpuserbase, "name": admin, 'type':'admin', "group": "101", "organization":"42", "pcnumber":"", "roomnumber":"", "testpwd": "", "realpwd": "", "login": ""}
-    i = i + 1
-    teams.append(team)
+def login(i, teamtype):
+    if i < 10:
+        loginname = teamtype + "00" + str(i)
+    elif i < 100:
+        loginname = teamtype + "0" + str(i)
+    else: 
+        loginname = teamtype + str(i)
+    return loginname
 
-i = firstid + adminmax
-for judge in judges:
-    team = {'id': str(i), 'icpcid': i+ipcpuserbase, "name": judge, 'type':'judge', "group": "101", "organization":"42", "pcnumber":"", "roomnumber":"", "testpwd": "", "realpwd": "", "login": ""}
-    i = i + 1
-    teams.append(team)
-
-# Reading the csv files with teams and pcs
-i = firstid + adminmax + judgemax
-for file in roomfiles:
-    roomnumber = rooms[roomfiles.index(file)]
-    with open(file) as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=tabledelimiter)
-        for row in spamreader:
-            for item in list(row):
-                if item=="":
-                    continue
-                spts = item.split(pcdelimiter,1)
-                if bool(len(spts)-1):
-                    team = {'id': str(i), 'icpcid': str(i+ipcpuserbase), "name": str(spts[1]), 'type':'team', "group":"102", "organization":"42", "pcnumber":str(spts[0]), "roomnumber":str(roomnumber), "testpwd": "", "realpwd": ""}
-                    teams.append(team)
-                    i = i + 1
-                else:
-                    pc = {'pcnumber': str(spts[0]), 'roomnumber': str(roomnumber)}
-                    pcs.append(pc)
-
-# For each user, add their passwords
 with open(testsessionpwdfile) as test, open(realsessionpwdfile) as real:
     testpasswords = [line.rstrip() for line in test]
     realpasswords = [line.rstrip() for line in real]
-    for team in teams:
-        team['testpwd'] = testpasswords[1 + int(team['id']) - firstid]
-        team['realpwd'] = realpasswords[1 + int(team['id']) - firstid]
 
-# For each user, generate their login name
+i = firstid
+for admin in admins:
+    if (len(list(filter(lambda team: team['name'] == admin, teams))) == 0):
+        while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
+            i = i + 1 
+        team = {'id': str(i),
+                'icpcid': str(i+ipcpuserbase), 
+                'name': admin, 
+                'type':'admin', 
+                'group': '101', 
+                'organization':'42', 
+                'pcnumber':'', 
+                'roomnumber':'', 
+                'testpwd': testpasswords[1 + i - firstid], 
+                'realpwd': realpasswords[1 + i - firstid], 
+                'login': login(i, 'admin') 
+        }
+        i = i + 1
+        teams.append(team)    
 
-for team in teams:
-    if int(team["id"]) < 10:
-        loginname = team["type"] + "00" + team["id"]
-    elif int(team["id"]) < 100:
-        loginname = team["type"] + "0" + team["id"]
-    else: 
-        loginname = team["type"] + team["id"]
-    team["login"] = loginname
+i = firstid + adminmax    
+for judge in judges:
+    if (len(list(filter(lambda team: team['name'] == judge, teams))) == 0):
+        while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
+            i = i + 1 
+        team = {'id': str(i),
+                'icpcid': str(i+ipcpuserbase), 
+                'name': judge, 
+                'type':'judge', 
+                'group': '101', 
+                'organization':'42', 
+                'pcnumber':'', 
+                'roomnumber':'', 
+                'testpwd': testpasswords[1 + i - firstid], 
+                'realpwd': realpasswords[1 + i - firstid], 
+                'login': login(i, 'judge') 
+        }
+        i = i + 1
+        teams.append(team)  
+
+# TODO read PCs and teams from the excel file
+
+# # Reading the csv files with teams and pcs
+# i = firstid + adminmax + judgemax
+# for file in roomfiles:
+#     roomnumber = rooms[roomfiles.index(file)]
+#     with open(file) as csvfile:
+#         spamreader = csv.reader(csvfile, delimiter=tabledelimiter)
+#         for row in spamreader:
+#             for item in list(row):
+#                 if item=="":
+#                     continue
+#                 spts = item.split(pcdelimiter,1)
+#                 if bool(len(spts)-1):
+#                     team = {'id': str(i), 'icpcid': str(i+ipcpuserbase), "name": str(spts[1]), 'type':'team', "group":"102", "organization":"42", "pcnumber":str(spts[0]), "roomnumber":str(roomnumber), "testpwd": "", "realpwd": ""}
+#                     teams.append(team)
+#                     i = i + 1
+#                 else:
+#                     pc = {'pcnumber': str(spts[0]), 'roomnumber': str(roomnumber)}
+#                     pcs.append(pc)
+
 
 ############################################ FILE CREATION ##########################################################
 
