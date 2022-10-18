@@ -12,7 +12,7 @@ teamsmax = 100
 #INPUT
 indir = "" # input file directory
 adminmax = 50
-admins = ["Michael", "Josh", "Tudor", "Koen"]  #TODO could input these as seperate csv files, but there are not that many
+admins = ["Michael", "Josh", "Tudor", "Koen"] 
 
 judgemax = 50
 judges = ["Thomas", "Jeroen", "Peter"]
@@ -22,7 +22,7 @@ judges = ["Thomas", "Jeroen", "Peter"]
 rooms = ["6B37", "6B57"]
 roomfiles = [indir + "6b37.csv", indir + "6b57.csv"]
 tabledelimiter = ';' #TODO names include this symbol often . Fix: read directly from the excel file. seems pretty easy to do
-pcdelimiter = '='  
+pcdelimiter = '=' 
 
 ## 2 files containing a list of passwords, each password on a new line. 
 ## each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
@@ -56,6 +56,9 @@ groups = [{
   "name": "Spectators"
 }]
 
+#CACHE
+cachefile = "cache.json"
+
 #OUTPUT
 outdir = "out/"
 generatedhosts = outdir + "generatedhosts"
@@ -72,6 +75,16 @@ roomtopcs = outdir + "roomtopcs.txt"
 #pcs to room is already contained in generatedhosts
 
 ############################################ PROCESSING #############################################################
+
+# Creating backup pc list
+# a pc has
+    # KEY a pc number
+    # a room number
+    # a row number
+    # a column number (how many'th pc on that row)
+#pcs = { 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{} }
+pcs = []
+
 # Creating teams list
 # a user has:
     # KEY an id ranging from firstid to firstid + adminmax + judgemax + teamsmax
@@ -82,18 +95,32 @@ roomtopcs = outdir + "roomtopcs.txt"
     # a organisation id -> a number, matching an id from organisation
     # a pc number (if type == team)
     # a room number
+    # a row number
+    # a column number (how many'th pc on that row)
     # a password for the test session: the n'th password in testsessionpwdfile, where n is 1 + id - firstid
     # a password for the real session: the n'th password in realsessionpwdfile, where n is 1 + id - firstid
     # login, a name to log in on the domjudge servers
-#teams = {'id':{}, 'icpcid':{}, 'name':{}, 'type':{}, 'group_id':{}, 'organisation':{}, 'pcnumber':{}, 'roomnumber':{}, 'testpwd':{}, 'realpwd':{}}
-teams = []
+# teams = { 'id':{}, 'icpcid':{}, 'name':{}, 'type':{}, 'group_id':{}, 'organisation':{}, 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{}, 'testpwd':{}, 'realpwd':{}, 'login':{} }
 
-# Creating backup pc list
-# a pc has
-    # KEY a pc number
-    # a room number
-#pcs = {'pcnumber':{}, 'roomnumber':{}}
-pcs = []
+# Ask user to read teams from cache or not
+while (True):
+    answer = input("Use cached user data? (y/n):")
+    if (answer == "y"):
+        with open(cachefile) as infile:
+            teams = json.load(infile)   # TODO catch cache not existing yet 
+        break
+    elif (answer == "n"):
+        teams = []
+        break
+
+
+
+# For each admin, judge or team:
+    # If their name occurs in the teams object, do not recompute all data
+        # DO NOT RECOMPUTE: id, icpcid, name, type, group_id, organisation, testpwd, realpwd, login
+        # RECOMPUTE: pcnumber, roomnumber, rownumber, columnnumber
+    # If their name does not occur in the teams object, check if id = i is taken already, else i=i+1 and try again
+        # COMPUTE: everything
 
 # adding the admin and judge users
 i = firstid
@@ -136,7 +163,6 @@ with open(testsessionpwdfile) as test, open(realsessionpwdfile) as real:
         team['realpwd'] = realpasswords[1 + int(team['id']) - firstid]
 
 # For each user, generate their login name
-
 
 for team in teams:
     if int(team["id"]) < 10:
@@ -309,6 +335,7 @@ with open(teamstoroom, 'w') as outfile:
     # Room number
     #pc1
     #pc2 etc.
+
 with open(roomtopcs, 'w') as outfile:
     for room in rooms:
         outfile.writelines(room+"\n")
@@ -320,5 +347,8 @@ with open(roomtopcs, 'w') as outfile:
                 outfile.writelines(pc["pcnumber"]+"\n")
         outfile.writelines("\n\n")
 
-
 #TODO pcs en teamnamen op alfabetische volgorde
+
+# Cache the teams object
+with open(cachefile, 'w') as outfile:
+    json.dump(teams, outfile)
