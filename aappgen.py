@@ -6,9 +6,6 @@ except ImportError:
 import yaml
 import json 
 
-
-
-
 ######################################### CONSTANTS #####################################################################
 #NUMBERS
 firstid = 1
@@ -17,9 +14,9 @@ icpcgroupsbase = 133700
 teamsmax = 100
 
 #INPUT
-indir = "" # input file directory
-## 2 files containing a list of passwords, each password on a new line. 
-## each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
+indir = "in/" # input file directory
+# 2 files containing a list of passwords, each password on a new line. 
+# each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
 testsessionpwdfile = indir + "koenpasswd.txt"
 realsessionpwdfile = indir + "realpasswd.txt"
 roomsfile = indir + "contest_floor.xlsx"
@@ -37,8 +34,8 @@ admins = ["Michael", "Josh", "Tudor", "Koen"]
 judgemax = 50
 judges = ["Thomas", "Jeroen", "Peter"]
 
-## A json object containing the organizations taking part in the contest.
-## See file creation below for the format specification.
+# A json object containing the organizations taking part in the contest.
+# See file creation below for the format specification.
 organizations = [{
   "id": "INST-42",
   "icpc_id": "42",
@@ -47,8 +44,8 @@ organizations = [{
   "country": "NLD"
 }]
 
-## A json object containing the desired user groups for domjudge accounts.
-## See file creation below for the format specification.
+# A json object containing the desired user groups for domjudge accounts.
+# See file creation below for the format specification.
 groups = [{
   "id": "100",
   "icpc_id": str(icpcgroupsbase),
@@ -80,7 +77,7 @@ realpassslips = outdir + "realpasswords.txt"
 roomtoteams = outdir + "roomtoteams.txt"
 teamstoroom = outdir + "teamstoroom.txt"
 roomtopcs = outdir + "roomtopcs.txt"
-#pcs to room is already contained in generatedhosts
+# pcs to room is already contained in generatedhosts
 
 ############################################ PROCESSING #############################################################
 
@@ -90,8 +87,11 @@ roomtopcs = outdir + "roomtopcs.txt"
     # a room number
     # a row number
     # a column number (how many'th pc on that row)
-#pcs = { 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{} }
+# pcs = { 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{} }
 pcs = []
+
+# Creating a room name list 
+rooms = []
 
 # Creating teams list
 # a user has:
@@ -183,6 +183,48 @@ for judge in judges:
 
 # TODO read PCs and teams from the excel file
 
+
+
+# open the excel file
+
+# for each sheet
+
+    # room name = sheet name
+
+    # add room name to rooms
+
+    # rowcounter = 0
+ 
+
+    # for each row
+        # pccounter = 0
+        # foundrow = false
+        # look for cells containing a pc  
+        
+        # if randomword (any string that doesn't start with "PC-")
+            # skip this cell
+
+        # if found a pc,
+            # increase column counter by 1
+            # if !foundrow
+            #   increase rowcounter by 1  (do only once per row)
+            #   foundrow = true
+
+        # if just a pc, add it to backup: add pcnumber, roomnumber, row and column
+         #if pc has a team sitting there:
+            # if the teamname exists in teams
+                # update that team's pcnumber, roomnumber, row and column
+            # else (new team!)
+                # create new team and fill in all fields.
+        
+       
+
+
+
+
+
+
+# OLD CODE
 # # Reading the csv files with teams and pcs
 # i = firstid + adminmax + judgemax
 # for file in roomfiles:
@@ -201,7 +243,7 @@ for judge in judges:
 #                 else:
 #                     pc = {'pcnumber': str(spts[0]), 'roomnumber': str(roomnumber)}
 #                     pcs.append(pc)
-
+## END OLD CODE
 
 ############################################ FILE CREATION ##########################################################
 
@@ -378,6 +420,8 @@ with open(roomtopcs, 'w') as outfile:
         outfile.writelines("\n\n")
 
 #TODO pcs en teamnamen op alfabetische volgorde
+
+#TODO add coordinates to txt outputs
 
 # Cache the teams object
 with open(cachefile, 'w') as outfile:
