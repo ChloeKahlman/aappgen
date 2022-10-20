@@ -17,10 +17,10 @@ teamsmax = 100
 indir = "in/" # input file directory
 # 2 files containing a list of passwords, each password on a new line. 
 # each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
-testsessionpwdfile = indir + "koenpasswd.txt"
+testsessionpwdfile = indir + "testpasswd.txt"
 realsessionpwdfile = indir + "realpasswd.txt"
 # an excel sheet containing the floor layout
-roomsfile = indir + "contest_floor.xlsx"
+roomsfile = indir + "contest_floor.xls" # TODO current xlrd library does not support .xlsx because of security concern
 pcdelimiter = '='
 
 # ## a list of room names, matching an equal length list of csv files containing PCs and groups in those rooms.
@@ -143,7 +143,7 @@ with open(testsessionpwdfile) as test, open(realsessionpwdfile) as real:
 i = firstid
 for admin in admins:
     if (len(list(filter(lambda team: team['name'] == admin, teams))) == 0):
-        while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
+        while (len(list(filter(lambda team: team['id'] == str(i), teams))) == 1):
             i = i + 1 
         team = {'id': str(i),
                 'icpcid': str(i+ipcpuserbase), 
@@ -152,7 +152,9 @@ for admin in admins:
                 'group': '101', 
                 'organization':'42', 
                 'pcnumber':'', 
-                'roomnumber':'', 
+                'roomnumber':'',
+                'rownumber':'',
+                'columnnumber':'', 
                 'testpwd': testpasswords[1 + i - firstid], 
                 'realpwd': realpasswords[1 + i - firstid], 
                 'login': login(i, 'admin') 
@@ -163,7 +165,7 @@ for admin in admins:
 i = firstid + adminmax    
 for judge in judges:
     if (len(list(filter(lambda team: team['name'] == judge, teams))) == 0):
-        while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
+        while (len(list(filter(lambda team: team['id'] == str(i), teams))) == 1):
             i = i + 1 
         team = {'id': str(i),
                 'icpcid': str(i+ipcpuserbase), 
@@ -172,7 +174,9 @@ for judge in judges:
                 'group': '101', 
                 'organization':'42', 
                 'pcnumber':'', 
-                'roomnumber':'', 
+                'roomnumber':'',
+                'rownumber':'',
+                'columnnumber':'',  
                 'testpwd': testpasswords[1 + i - firstid], 
                 'realpwd': realpasswords[1 + i - firstid], 
                 'login': login(i, 'judge') 
@@ -182,67 +186,63 @@ for judge in judges:
 
 # TODO read PCs and teams from the excel file
 
-
-
-# open the excel file
-
-# for each sheet
-
-    # room name = sheet name
-
-    # add room name to rooms
-
-    # rowcounter = 0
- 
-
-    # for each row
-        # pccounter = 0
-        # foundrow = false
-        # look for cells containing a pc  
-        
-        # if randomword (any string that doesn't start with "PC-")
-            # skip this cell
-
-        # if found a pc,
-            # increase column counter by 1
-            # if !foundrow
-            #   increase rowcounter by 1  (do only once per row)
-            #   foundrow = true
-
-        # if just a pc, add it to backup: add pcnumber, roomnumber, row and column
-         #if pc has a team sitting there:
-            # if the teamname exists in teams
-                # update that team's pcnumber, roomnumber, row and column
-            # else (new team!)
-                # create new team and fill in all fields.
-        
-       
-
-
-
-
-
-
-# OLD CODE
-# # Reading the csv files with teams and pcs
-# i = firstid + adminmax + judgemax
-# for file in roomfiles:
-#     roomnumber = rooms[roomfiles.index(file)]
-#     with open(file) as csvfile:
-#         spamreader = csv.reader(csvfile, delimiter=tabledelimiter)
-#         for row in spamreader:
-#             for item in list(row):
-#                 if item=="":
-#                     continue
-#                 spts = item.split(pcdelimiter,1)
-#                 if bool(len(spts)-1):
-#                     team = {'id': str(i), 'icpcid': str(i+ipcpuserbase), "name": str(spts[1]), 'type':'team', "group":"102", "organization":"42", "pcnumber":str(spts[0]), "roomnumber":str(roomnumber), "testpwd": "", "realpwd": ""}
-#                     teams.append(team)
-#                     i = i + 1
-#                 else:
-#                     pc = {'pcnumber': str(spts[0]), 'roomnumber': str(roomnumber)}
-#                     pcs.append(pc)
-## END OLD CODE
+with xlrd.open_workbook(roomsfile) as spreadsheet:
+    i = firstid + adminmax + judgemax  # TODO this is potentially unsafe if actual number of judges is low but cached number of judges is over the limit
+    for tab in spreadsheet.sheets():
+        roomname = tab.name
+        rooms.append(roomname)
+        rowcounter = 0
+        for cur_row in range(0, tab.nrows):
+            columncounter = 0
+            foundpc = False
+            for cur_col in range(0, tab.ncols):
+                cell = tab.cell(cur_row, cur_col)
+                item = cell.value
+                # print(cell.value, cell.ctype)
+                if (not item.startswith("PC-")):
+                    continue
+                else:
+                    columncounter = columncounter + 1
+                    if (not foundpc):
+                        rowcounter = rowcounter + 1
+                        foundpc = True
+                    spts = item.split(pcdelimiter,1)
+                    if (len(spts) == 1): #found a backup pc
+                        pc = {
+                            'pcnumber': str(spts[0]), 
+                            'roomnumber': roomname,
+                            'rownumber': str(rowcounter),
+                            'columnnumber': str(columncounter)
+                        }   
+                        pcs.append(pc)
+                    else: #found a team
+                        search = list(filter(lambda team: team['name'] == spts[1], teams))
+                        if (len(search) == 1): #existing team
+                            index = teams.index(search[0])
+                            # update that team's pcnumber, roomnumber, row and column
+                            teams[index]['pcnumber'] = spts[0]
+                            teams[index]['roomnumber'] = roomname
+                            teams[index]['rownumber'] = str(rowcounter)
+                            teams[index]['columnnumber'] = str(columncounter)
+                        else: #new team
+                            while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
+                                i = i + 1 
+                            team = {
+                                'id': str(i),
+                                'icpcid': str(i+ipcpuserbase), 
+                                'name': spts[1], 
+                                'type': 'team', 
+                                'group': '102', 
+                                'organization':'42', 
+                                'pcnumber': spts[0], 
+                                'roomnumber': roomname,
+                                'rownumber': str(rowcounter),
+                                'columnnumber': str(columncounter),  
+                                'testpwd': testpasswords[1 + i - firstid], 
+                                'realpwd': realpasswords[1 + i - firstid], 
+                                'login': login(i, 'team') 
+                            }
+                            teams.append(team)
 
 ############################################ FILE CREATION ##########################################################
 
