@@ -246,6 +246,7 @@ with xlrd.open_workbook(roomsfile) as spreadsheet:
 
 ############################################ FILE CREATION ##########################################################
 
+#ansiblehosts file
 storage = {'all':{'children':{'backup':{'hosts':{}}, 'teams':{'hosts':{}}}}}
 for team in teams:
     if team["type"] == "admin" or team["type"] == "judge":
@@ -256,12 +257,15 @@ for pc in pcs:
 with open(generatedhosts, "w") as outfile:
     yaml.dump(storage, outfile)
 
+#organizations.json
 with open(organisationsjson, "w") as outfile:
     outfile.write(json.dumps(organizations, indent=2))
 
+#groups.json
 with open(groupsjson, "w") as outfile:
     outfile.write(json.dumps(groups, indent=2))
 
+#teams.json
 teamsoutput = []
 for team in teams: 
     teamoutput = {
@@ -275,6 +279,7 @@ for team in teams:
 with open(teamsjson, "w") as outfile:
     outfile.write(json.dumps(teamsoutput, indent=2))
 
+#testsession accounts.yaml
 accounts = []
 for team in teams:
     account = {
@@ -290,6 +295,7 @@ with open(testaccountsyaml, 'w') as outfile:
     for line in yamllines:
         outfile.writelines(line)
 
+#realsession accounts.yaml
 accounts = []
 for team in teams:
     account = {
@@ -305,40 +311,40 @@ with open(realaccountsyaml, 'w') as outfile:
     for line in yamllines:
         outfile.writelines(line)
 
+# paper slips for handing out test session passwords
 with open(testpassslips, 'w') as outfile:
     for team in teams:
-        outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nTest Session Password:  "+team["testpwd"]+"\nRoom:  "+team["roomnumber"]+"\n\n")
+        outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nTest Session Password:  "+team["testpwd"]+"\nRoom:  "+team["roomnumber"]+"   Row:"+team['rownumber']+"  Computer:"+team['columnnumber']+"\n\n")
 
+# paper slips for handing out real session passwords
 with open(realpassslips, 'w') as outfile:
     for team in teams:
-        outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nCompetition Password:  "+team["realpwd"]+"\nRoom:  "+team["roomnumber"]+"\n\n")
+        outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nCompetition Password:  "+team["realpwd"]+"\nRoom:  "+team["roomnumber"]+"   Row:"+team['rownumber']+"  Computer:"+team['columnnumber']+"\n\n")
 
 with open(roomtoteams, 'w') as outfile:
     for room in rooms:
         outfile.writelines("ROOM "+room+"\n")
         for team in teams:
             if(room == team["roomnumber"]):
-                outfile.writelines(team["name"]+"\n")
+                outfile.writelines("Team: "+team["name"]+"   Row:"+team['rownumber']+"  Computer:"+team['columnnumber']+"\n")
         outfile.writelines("\n\n")
 
 with open(teamstoroom, 'w') as outfile:
     for team in teams:
-        outfile.writelines(team["name"]+"  :  "+team["roomnumber"]+"\n")
+        outfile.writelines(team["name"]+"  :  "+team["roomnumber"]+"   Row:"+team['rownumber']+"  Computer:"+team['columnnumber']+"\n")
 
 with open(roomtopcs, 'w') as outfile:
     for room in rooms:
         outfile.writelines(room+"\n")
         for team in teams:
             if(room == team["roomnumber"]):
-                outfile.writelines(team["pcnumber"]+"\n")
+                outfile.writelines(team["pcnumber"]+"   Row:"+team['rownumber']+"  Computer:"+team['columnnumber']+"\n")
         for pc in pcs:
             if(room == pc["roomnumber"]):
-                outfile.writelines(pc["pcnumber"]+"\n")
+                outfile.writelines(pc["pcnumber"]+"   Row:"+pc['rownumber']+"  Computer:"+pc['columnnumber']+"\n")
         outfile.writelines("\n\n")
 
 #TODO pcs en teamnamen op alfabetische volgorde
-
-#TODO add coordinates to txt outputs
 
 # Cache the teams object
 with open(cachefile, 'w') as outfile:
