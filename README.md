@@ -5,7 +5,7 @@ It requires the import of the xlrd python library. Install it with:
 pip install xlrd
 ```
 
-Provide the files 'testpwd.txt', 'realpwd.txt', and 'contest_floor.xlsx' in the in folder.
+Provide the files 'testpwd.txt', 'realpwd.txt', and 'contest_floor.xls' in the in folder.
 
 Format specification of the input files:  **TODO**
 
