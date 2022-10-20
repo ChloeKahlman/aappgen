@@ -19,6 +19,7 @@ indir = "in/" # input file directory
 # each file should contain at least adminmax + judgemax + teamsmax fresh passwords.
 testsessionpwdfile = indir + "koenpasswd.txt"
 realsessionpwdfile = indir + "realpasswd.txt"
+# an excel sheet containing the floor layout
 roomsfile = indir + "contest_floor.xlsx"
 pcdelimiter = '='
 
@@ -87,7 +88,6 @@ roomtopcs = outdir + "roomtopcs.txt"
     # a room number
     # a row number
     # a column number (how many'th pc on that row)
-# pcs = { 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{} }
 pcs = []
 
 # Creating a room name list 
@@ -108,7 +108,6 @@ rooms = []
     # a password for the test session: the n'th password in testsessionpwdfile, where n is 1 + id - firstid
     # a password for the real session: the n'th password in realsessionpwdfile, where n is 1 + id - firstid
     # login, a name to log in on the domjudge servers
-# teams = { 'id':{}, 'icpcid':{}, 'name':{}, 'type':{}, 'group_id':{}, 'organisation':{}, 'pcnumber':{}, 'roomnumber':{}, 'rownumber':{}, 'columnnumber':{}, 'testpwd':{}, 'realpwd':{}, 'login':{} }
 
 # Ask user to read teams from cache or not
 while (True):
@@ -247,12 +246,6 @@ for judge in judges:
 
 ############################################ FILE CREATION ##########################################################
 
-# generatedhosts
-## Format:
-# storage = {'all':{'children':{'backup':{'hosts':{}}, 'teams':{'hosts':{}}}}}
-# if team has pc : storage['all']['children']['teams']['hosts'][spts[0]] = {'ansible_host': f"{spts[0]}.clients.vu.nl", 'room': room, 'teamname': spts[1]}
-# if no team has pc : storage['all']['children']['backup']['hosts'][item] = {'ansible_host': f"{item}.clients.vu.nl", 'room': room}                
-
 storage = {'all':{'children':{'backup':{'hosts':{}}, 'teams':{'hosts':{}}}}}
 for team in teams:
     if team["type"] == "admin" or team["type"] == "judge":
@@ -263,37 +256,11 @@ for pc in pcs:
 with open(generatedhosts, "w") as outfile:
     yaml.dump(storage, outfile)
 
-# organisations.json
-## Format:
-    # id: the external affiliation ID. Must be unique
-    # icpc_id (optional): an external ID, e.g. from the ICPC CMS, may be empty
-    # name: the affiliation short name as used in the jury interface and certain exports
-    # formal_name: the affiliation name as used on the scoreboard
-    # country: the country code in form of ISO 3166-1 alpha-3
-
 with open(organisationsjson, "w") as outfile:
     outfile.write(json.dumps(organizations, indent=2))
 
-# groups.json
-## Format: 
-    # id: the category ID to use. Must be unique
-    # icpc_id (optional): an external ID, e.g. from the ICPC CMS, may be empty
-    # name: the name of the team category as shown on the scoreboard
-    # hidden (defaults to false): if true, teams in this category will not be shown on the scoreboard
-    # sortorder (defaults to 0): the sort order of the team category to use on the scoreboard. Categories with the same sortorder will be grouped together.
-
 with open(groupsjson, "w") as outfile:
     outfile.write(json.dumps(groups, indent=2))
-
-# teams.json
-## Format:
-    # id: the team ID. Must be unique
-    # icpc_id (optional): an external ID, e.g. from the ICPC CMS, may be empty
-    # group_ids: an array with one element: the category ID this team belongs to
-    # name: the team name as used in the web interface
-    # members (optional): Members of the team as one long string
-    # display_name (optional): the team display name. If provided, will display this instead of the team name in certain places, like the scoreboard
-    # organization_id: the external ID of the team affiliation this team belongs to
 
 teamsoutput = []
 for team in teams: 
@@ -307,16 +274,6 @@ for team in teams:
     teamsoutput.append(teamoutput)
 with open(teamsjson, "w") as outfile:
     outfile.write(json.dumps(teamsoutput, indent=2))
-
-# test/accounts.yaml
-## Format:
-    # id: the account ID. Must be unique
-    # username: the account username. Must be unique
-    # password: the password to use for the account
-    # type: the user type, one of team, judge, admin or balloon, jury will be interpret as judge
-    # team_id: (NOT OPTIONAL) the external ID of the team this account belongs to
-    # name: (optional) the full name of the account
-    # ip (optional): IP address to link to this account
 
 accounts = []
 for team in teams:
@@ -333,17 +290,6 @@ with open(testaccountsyaml, 'w') as outfile:
     for line in yamllines:
         outfile.writelines(line)
 
-#real version
-# real/accounts.yaml
-## Format:
-    # id: the account ID. Must be unique
-    # username: the account username. Must be unique
-    # password: the password to use for the account
-    # type: the user type, one of team, judge, admin or balloon, jury will be interpret as judge
-    # team_id: (NOT OPTIONAL) the external ID of the team this account belongs to
-    # name: (optional) the full name of the account
-    # ip (optional): IP address to link to this account
-
 accounts = []
 for team in teams:
     account = {
@@ -359,31 +305,13 @@ with open(realaccountsyaml, 'w') as outfile:
     for line in yamllines:
         outfile.writelines(line)
 
-# testpassslips.txt
-## Format: 
-    # teamname
-    # password
-    # room number (so the password can be delivered)
-
 with open(testpassslips, 'w') as outfile:
     for team in teams:
         outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nTest Session Password:  "+team["testpwd"]+"\nRoom:  "+team["roomnumber"]+"\n\n")
 
-# realpassslips.txt
-## Format:
-    # teamname
-    # password
-    # room number (so the password can be delivered)
-
 with open(realpassslips, 'w') as outfile:
     for team in teams:
         outfile.writelines("Team:  "+team["name"]+"\nUsername:  "+team["login"]+"\nCompetition Password:  "+team["realpwd"]+"\nRoom:  "+team["roomnumber"]+"\n\n")
-
-# roomtoteams.txt
-## Format:
-    # Room
-    # team1
-    # team2 etc
 
 with open(roomtoteams, 'w') as outfile:
     for room in rooms:
@@ -393,20 +321,9 @@ with open(roomtoteams, 'w') as outfile:
                 outfile.writelines(team["name"]+"\n")
         outfile.writelines("\n\n")
 
-# teamstoroom.txt
-## Format:
-    # teamname: room number
-    # etc
-
 with open(teamstoroom, 'w') as outfile:
     for team in teams:
         outfile.writelines(team["name"]+"  :  "+team["roomnumber"]+"\n")
-
-# roomtopcs.txt
-## Format:
-    # Room number
-    #pc1
-    #pc2 etc.
 
 with open(roomtopcs, 'w') as outfile:
     for room in rooms:
