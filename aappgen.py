@@ -4,7 +4,8 @@ except ImportError:
   print ('Error! This script requires the pandas package to read the room layout Excel file. Use \"pip install pandas\" to install.')
   exit(1)
 import yaml
-import json 
+import json
+import os.path 
 
 ######################################### CONSTANTS #####################################################################
 #NUMBERS
@@ -22,12 +23,6 @@ realsessionpwdfile = indir + "realpasswd.txt"
 # an excel sheet containing the floor layout
 roomsfile = indir + "contest_floor.xlsx"
 pcdelimiter = '='
-
-# ## a list of room names, matching an equal length list of csv files containing PCs and groups in those rooms.
-# ## csv format: PC-444444;PC-444445 = Team Really Cool Name; etc.
-# rooms = ["6B37", "6B57"]
-# roomfiles = [indir + "6b37.csv", indir + "6b57.csv"]
-# tabledelimiter = ';' #TODO names include this symbol often . Fix: read directly from the excel file. seems pretty easy to do
 
 adminmax = 50
 admins = ["Michael", "Josh", "Tudor", "Koen"] 
@@ -98,7 +93,7 @@ rooms = []
   # KEY an id ranging from firstid to firstid + adminmax + judgemax + teamsmax
   # an icpc id, equal to id + icpcuserbase 
   # a name
-  # a type, being either team, judge or admin   TODO spectator type accounts?
+  # a type, being either team, judge or admin
   # a group ids -> a number, matching an id from groups
   # a organisation id -> a number, matching an id from organisation
   # a pc number (if type == team)
@@ -110,15 +105,18 @@ rooms = []
   # login, a name to log in on the domjudge servers
 
 # Ask user to read teams from cache or not
-while (True):
-  answer = input("Use cached user data? (y/n):")
-  if (answer == "y"):
-    with open(cachefile) as infile:
-      teams = json.load(infile)   # TODO catch cache not existing yet 
-    break
-  elif (answer == "n"):
-    teams = []
-    break
+if os.path.exists(cachefile):
+  while (True):
+    answer = input("Use cached user data? (y/n):")
+    if (answer == "y"):
+      with open(cachefile) as infile:
+        teams = json.load(infile)
+      break
+    elif (answer == "n"):
+      teams = []
+      break
+else:
+  teams = []
 
 # For each admin, judge or team:
   # If their name occurs in the teams object, do not recompute all data
@@ -186,7 +184,11 @@ for judge in judges:
 
 
 with pandas.ExcelFile(roomsfile) as excel:
-  i = firstid + adminmax + judgemax  # TODO this is potentially unsafe if actual number of judges is low but cached number of judges is over the limit
+  teamsonmap = []
+  if i > firstid + adminmax + judgemax: 
+    print("Error! Too many judges")
+    exit(1)   
+  i = firstid + adminmax + judgemax  # potentially unsafe
   for roomname in excel.sheet_names:
     tab = excel.parse(roomname, header = None)
     rooms.append(roomname)
@@ -221,9 +223,10 @@ with pandas.ExcelFile(roomsfile) as excel:
               teams[index]['roomnumber'] = roomname
               teams[index]['rownumber'] = str(rowcounter)
               teams[index]['columnnumber'] = str(columncounter)
+              teamsonmap.append(team['name'])
             else: #new team
-              while (len(list(filter(lambda team: team['id'] == i, teams))) == 1):
-                i = i + 1   # TODO doesnt update
+              while (len(list(filter(lambda team: team['id'] == str(i), teams))) == 1):
+                i = i + 1
               team = {
                 'id': str(i),
                 'icpcid': str(i+ipcpuserbase), 
@@ -239,8 +242,14 @@ with pandas.ExcelFile(roomsfile) as excel:
                 'realpwd': realpasswords[1 + i - firstid], 
                 'login': login(i, 'team') 
               }
-              print(team+"\n")
+              #print(team+"\n")
               teams.append(team)
+              teamsonmap.append(team['name'])
+  #clear map location of cached accounts that are not on the map
+    for team in teams:
+      if team['type'] == 'team' and not teamsonmap.__contains__(team['name']):
+        team.update({'pcnumber':'removed', 'roomnumber':'removed', 'rownumber':'removed', 'columnnumber': 'removed'})
+
 
 ############################################ FILE CREATION ##########################################################
 
