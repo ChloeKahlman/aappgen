@@ -1,8 +1,8 @@
 This script generates the necessary files for AAPP.
 
-It requires the import of the xlrd python library. Install it with:
+It requires the import of the pandas python library. Install it with:
 ```
-pip install xlrd
+pip install pandas
 ```
 
 Provide the files 'testpwd.txt', 'realpwd.txt', and 'contest_floor.xls' in the in folder.
