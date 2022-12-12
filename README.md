@@ -1,9 +1,12 @@
 This script generates the necessary files for AAPP.
 
 It requires the import of the pandas python library. Install it with:
+
 ```
 pip install pandas
 ```
+
+TODO ImportError: Missing optional dependency 'openpyxl'.  Use pip or conda to install openpyxl.
 
 Provide the files 'testpwd.txt', 'realpwd.txt', and 'contest_floor.xls' in the in folder.
 
